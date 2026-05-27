@@ -42,7 +42,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.25"
           cache: true
 
       - name: Install dependencies
@@ -52,4 +52,5 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          install-mode: goinstall
           args: --timeout=5m ./...
