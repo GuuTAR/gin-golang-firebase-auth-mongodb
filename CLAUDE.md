@@ -1,0 +1,42 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Reusable Go project template using **Gin** as the HTTP framework
+
+## Commands
+
+```bash
+# Run the server
+go run ./cmd/server/main.go
+
+# Build
+go build -o bin/server ./cmd/server
+
+# Format code
+gofmt -w .
+
+# Lint (requires golangci-lint)
+golangci-lint run
+
+# Install dependencies
+go mod vendor
+```
+
+## Architecture
+
+The project follows a layered architecture:
+
+```
+cmd/server/         # Entry point — initializes config, DB, Firebase, and Gin router
+internal/
+  config/           # App configuration loaded from env vars or config file
+  middleware/       # Gin middleware (JWT verification, CORS, etc.)
+  handlers/         # HTTP handlers — thin layer that delegates to services
+  services/         # Business logic
+  repository/       # MongoDB data access layer
+  models/           # Shared data models / DTOs
+pkg/                # Reusable packages (Auth client, DB client)
+```
