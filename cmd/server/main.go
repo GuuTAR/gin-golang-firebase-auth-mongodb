@@ -13,6 +13,8 @@ import (
 
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/config"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/handlers"
+	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/middleware"
+	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/pkg/auth"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/pkg/db"
 )
 
@@ -21,22 +23,28 @@ func main() {
 	_ = godotenv.Load()
 
 	cfg := config.Load()
-
 	// ── Process-lifetime context (cancelled on SIGINT / SIGTERM) ─────────────
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// ── MongoDB ──────────────────────────────────────────────────────────────
-	// ctx is signal-aware: if SIGTERM arrives during connect/ping it cancels
-	// immediately rather than waiting out the internal 10 s timeout.
 	mongoClient, err := db.NewMongoClient(ctx, cfg.MongoURI, cfg.MongoDB)
 	if err != nil {
 		log.Fatalf("mongodb: %v", err)
 	}
 	log.Printf("mongodb connected (db=%s)", cfg.MongoDB)
 
+	// ── Firebase ─────────────────────────────────────────────────────────────
+	firebaseClient, err := auth.NewFirebaseClient(ctx, cfg.Firebase)
+	if err != nil {
+		log.Fatalf("firebase: %v", err)
+	}
+	log.Println("firebase auth client initialised")
+
 	// ── Dependency wiring ────────────────────────────────────────────────────
 	healthHandler := handlers.NewHealthHandler()
+	authHandler := handlers.NewAuthHandler()
+	tokenHandler := handlers.NewTokenHandler(cfg.FirebaseWebAPIKey)
 
 	// ── Router ───────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -44,10 +52,24 @@ func main() {
 	}
 	r := gin.Default()
 
+	// Public routes
 	r.GET("/health", healthHandler.Check)
 
 	v1 := r.Group("/api/v1")
-	_ = v1 // placeholder until routes are added
+	{
+		authGroup := v1.Group("/auth")
+
+		// POST /api/v1/auth/token — sign in with email+password, returns a Bearer token.
+		// Useful for testing with curl / Postman. In production the client app
+		// should call Firebase directly using the client SDK.
+		authGroup.POST("/token", tokenHandler.Token)
+
+		// Protected routes — require a valid Firebase ID token
+		authGroup.Use(middleware.FirebaseAuth(firebaseClient.Auth))
+		{
+			authGroup.GET("/me", authHandler.Me)
+		}
+	}
 
 	// ── HTTP server ──────────────────────────────────────────────────────────
 	srv := &http.Server{
@@ -65,9 +87,7 @@ func main() {
 	}()
 
 	// ── Graceful shutdown ────────────────────────────────────────────────────
-	<-ctx.Done() // block until signal
-
-	// Release signal resources so a second signal kills the process immediately.
+	<-ctx.Done()
 	stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -76,7 +96,6 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("server shutdown: %v", err)
 	}
-
 	if err := mongoClient.Disconnect(shutdownCtx); err != nil {
 		log.Printf("mongodb disconnect: %v", err)
 	}
