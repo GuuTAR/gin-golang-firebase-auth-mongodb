@@ -52,7 +52,7 @@ internal/
   middleware/       # Gin middleware (JWT verification, CORS, etc.)
   handlers/         # HTTP handlers — thin layer that delegates to services
   services/         # Business logic
-  repository/       # MongoDB data access layer
+  repository/       # Database data access layer
   models/           # Shared data models / DTOs
 pkg/                # Reusable packages (Auth client, DB client)
 ```
