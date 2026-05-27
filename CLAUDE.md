@@ -10,7 +10,8 @@ Reusable Go project template using **Gin** as the HTTP framework
 
 ```bash
 # Run the server with live reload (rebuilds on every save)
-air
+air                          # Linux / macOS  (.air.toml)
+air -c .air.windows.toml     # Windows        (.air.windows.toml)
 
 # Run the server (no live reload)
 go run ./cmd/server/main.go
@@ -52,7 +53,7 @@ internal/
   middleware/       # Gin middleware (JWT verification, CORS, etc.)
   handlers/         # HTTP handlers — thin layer that delegates to services
   services/         # Business logic
-  repository/       # MongoDB data access layer
+  repository/       # Database data access layer
   models/           # Shared data models / DTOs
 pkg/                # Reusable packages (Auth client, DB client)
 ```

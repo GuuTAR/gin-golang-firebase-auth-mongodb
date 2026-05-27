@@ -23,6 +23,22 @@ Project template for reusable
 
 3. Running server
 
+   Run normally
+
    ```
    go run ./cmd/server/main.go
+   ```
+
+   Run with live-reload
+
+   Linux/MacOS
+
+   ```
+   air
+   ```
+
+   Windows
+
+   ```
+   air -c .air.windows.toml
    ```

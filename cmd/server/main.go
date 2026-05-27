@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/config"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/handlers"
+	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/pkg/db"
 )
 
 func main() {
@@ -21,6 +21,19 @@ func main() {
 	_ = godotenv.Load()
 
 	cfg := config.Load()
+
+	// ── Process-lifetime context (cancelled on SIGINT / SIGTERM) ─────────────
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// ── MongoDB ──────────────────────────────────────────────────────────────
+	// ctx is signal-aware: if SIGTERM arrives during connect/ping it cancels
+	// immediately rather than waiting out the internal 10 s timeout.
+	mongoClient, err := db.NewMongoClient(ctx, cfg.MongoURI, cfg.MongoDB)
+	if err != nil {
+		log.Fatalf("mongodb: %v", err)
+	}
+	log.Printf("mongodb connected (db=%s)", cfg.MongoDB)
 
 	// ── Dependency wiring ────────────────────────────────────────────────────
 	healthHandler := handlers.NewHealthHandler()
@@ -36,7 +49,7 @@ func main() {
 	v1 := r.Group("/api/v1")
 	_ = v1 // placeholder until routes are added
 
-	// ── Graceful shutdown ────────────────────────────────────────────────────
+	// ── HTTP server ──────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
@@ -44,27 +57,28 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	// Start the HTTP server in a goroutine so it doesn't block the main thread,
-	// allowing the signal listener below to run concurrently.
 	go func() {
 		log.Printf("server listening on :%s (env=%s)", cfg.Port, cfg.Env)
-		// ListenAndServe always returns a non-nil error; ignore ErrServerClosed
-		// because that is the expected result of a clean Shutdown call.
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %v", err)
 		}
 	}()
 
-	// Block until an OS interrupt or termination signal is received.
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	// ── Graceful shutdown ────────────────────────────────────────────────────
+	<-ctx.Done() // block until signal
 
-	// Give in-flight requests up to 5 seconds to complete before forcing exit.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Release signal resources so a second signal kills the process immediately.
+	stop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("server shutdown: %v", err)
+	}
+
+	if err := mongoClient.Disconnect(shutdownCtx); err != nil {
+		log.Printf("mongodb disconnect: %v", err)
 	}
 	log.Println("server exited")
 }
