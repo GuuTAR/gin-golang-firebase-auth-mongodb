@@ -10,7 +10,8 @@ Reusable Go project template using **Gin** as the HTTP framework
 
 ```bash
 # Run the server with live reload (rebuilds on every save)
-air
+air                          # Linux / macOS  (.air.toml)
+air -c .air.windows.toml     # Windows        (.air.windows.toml)
 
 # Run the server (no live reload)
 go run ./cmd/server/main.go
