@@ -1,0 +1,43 @@
+# air — live reload for Go
+# Docs: https://github.com/air-verse/air
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Command to build the binary
+  cmd = "go build -o ./tmp/server ./cmd/server/main.go"
+  # Binary that air runs after a successful build
+  bin = "./tmp/server"
+  # Pass extra args to the binary (e.g. flags your server reads)
+  args_bin = []
+  # File extensions that trigger a rebuild when changed
+  include_ext = ["go", "toml", "yaml", "yml", "env"]
+  # Directories to watch (relative to root)
+  include_dir = ["cmd", "internal", "pkg"]
+  # Directories / files to ignore
+  exclude_dir   = ["tmp", "vendor", "bin", ".git"]
+  exclude_file  = []
+  exclude_regex = ["_test\\.go$"]
+  # Delay before rebuilding (ms) — debounces rapid saves
+  delay = 500
+  # Kill the running process before rebuilding
+  kill_delay    = "200ms"
+  send_interrupt = true
+  # Log build errors here
+  log = "tmp/build-errors.log"
+  stop_on_error = true
+
+[log]
+  time      = true
+  main_only = false
+
+[color]
+  main    = "magenta"
+  watcher = "cyan"
+  build   = "yellow"
+  runner  = "green"
+
+[misc]
+  # Remove tmp dir on exit
+  clean_on_exit = true
