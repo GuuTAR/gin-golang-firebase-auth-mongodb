@@ -9,7 +9,10 @@ Reusable Go project template using **Gin** as the HTTP framework
 ## Commands
 
 ```bash
-# Run the server
+# Run the server with live reload (rebuilds on every save)
+air
+
+# Run the server (no live reload)
 go run ./cmd/server/main.go
 
 # Build
@@ -24,6 +27,15 @@ golangci-lint run
 # Install dependencies
 go mod vendor
 ```
+
+## CI
+
+GitHub Actions runs on every push and pull request to `main` (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
+
+| Job | Steps |
+|-----|-------|
+| **Build & Test** | `go mod download` → `go vet` → `go build` → `go test -race` |
+| **Lint** | `golangci-lint` (latest) |
 
 ## Architecture
 
