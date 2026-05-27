@@ -1,5 +1,8 @@
 # Binaries
 bin/
+
+# air live-reload build output
+tmp/
 *.exe
 *.exe~
 *.dll
