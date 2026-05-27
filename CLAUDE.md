@@ -28,7 +28,7 @@ golangci-lint run
 go mod vendor
 
 # Docker
-docker build -t gin-app .
+docker build -t gin-golang-firebase-auth-mongodb .
 docker run --rm -p 8080:8080 --env-file .env gin-golang-firebase-auth-mongodb
 ```
 
