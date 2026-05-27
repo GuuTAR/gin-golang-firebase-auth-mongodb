@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Dev tooling
+.air.toml
+tmp/
+bin/
+
+# Secrets — never bake into the image
+.env
+*-credentials.json
+*-service-account.json
+
+# Vendor (image uses go mod download)
+vendor/
+
+# CI / docs
+.github/
+README.md
+CLAUDE.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

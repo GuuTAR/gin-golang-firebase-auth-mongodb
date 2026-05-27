@@ -26,16 +26,20 @@ golangci-lint run
 
 # Install dependencies
 go mod vendor
+
+# Docker
+docker build -t gin-golang-firebase-auth-mongodb .
+docker run --rm -p 8080:8080 --env-file .env gin-golang-firebase-auth-mongodb
 ```
 
 ## CI
 
 GitHub Actions runs on every push and pull request to `main` (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
 
-| Job | Steps |
-|-----|-------|
+| Job              | Steps                                                       |
+| ---------------- | ----------------------------------------------------------- |
 | **Build & Test** | `go mod download` → `go vet` → `go build` → `go test -race` |
-| **Lint** | `golangci-lint` (latest) |
+| **Lint**         | `golangci-lint` (latest)                                    |
 
 ## Architecture
 
