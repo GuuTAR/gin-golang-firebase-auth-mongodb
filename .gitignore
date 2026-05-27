@@ -1,0 +1,25 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary & coverage
+*.test
+*.out
+
+# Vendor directory (use go mod download instead)
+vendor/
+
+# Environment & secrets — never commit these
+.env
+*-credentials.json
+*-service-account.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
