@@ -92,6 +92,9 @@ func main() {
 		Handler:      r,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
+		// Longer than any fronting proxy/tunnel's idle timeout, so it never closes
+		// a keep-alive connection the proxy still considers live and reuses.
+		IdleTimeout: 120 * time.Second,
 	}
 
 	go func() {
