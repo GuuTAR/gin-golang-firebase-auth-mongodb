@@ -11,9 +11,10 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  # Build command — Windows requires the .exe suffix for cmd.exe to recognise
-  # the output as an executable.
-  cmd = "go build -o ./tmp/server.exe ./cmd/server/main.go"
+  # Regenerate the Swagger spec from annotations, then build the binary.
+  # Windows requires the .exe suffix for cmd.exe to recognise the output as
+  # an executable.
+  cmd = "swag init -g cmd/server/main.go --parseInternal -o docs && go build -o ./tmp/server.exe ./cmd/server/main.go"
   # Binary air runs after a successful build
   bin = "./tmp/server.exe"
   # Extra args forwarded to the binary (e.g. feature flags)

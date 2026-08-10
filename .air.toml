@@ -5,8 +5,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  # Command to build the binary
-  cmd = "go build -o ./tmp/server ./cmd/server/main.go"
+  # Regenerate the Swagger spec from annotations, then build the binary
+  cmd = "swag init -g cmd/server/main.go --parseInternal -o docs && go build -o ./tmp/server ./cmd/server/main.go"
   # Binary that air runs after a successful build
   bin = "./tmp/server"
   # Pass extra args to the binary (e.g. flags your server reads)

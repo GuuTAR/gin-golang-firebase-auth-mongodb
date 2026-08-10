@@ -57,3 +57,8 @@ internal/
   models/           # Shared data models / DTOs
 pkg/                # Reusable packages (Auth client, DB client)
 ```
+
+## Don't allow
+
+1. Do not read/write .env file
+2. Do not read/write file outside project
