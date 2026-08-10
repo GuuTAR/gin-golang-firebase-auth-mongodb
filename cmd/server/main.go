@@ -1,3 +1,13 @@
+// @title           gin-golang-firebase-auth-mongodb API
+// @version         1.0
+// @description     Reusable Go project template using Gin, Firebase Authentication, and MongoDB.
+//
+// @BasePath        /
+//
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                Firebase ID token — prefix with "Bearer "
 package main
 
 import (
@@ -10,7 +20,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "github.com/GuuTAR/gin-golang-firebase-auth-mongodb/docs"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/config"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/handlers"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/middleware"
@@ -54,6 +67,8 @@ func main() {
 
 	// Public routes
 	r.GET("/health", healthHandler.Check)
+	r.GET("/docs", func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "/docs/index.html") })
+	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	v1 := r.Group("/api/v1")
 	{
