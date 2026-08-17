@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
@@ -27,6 +28,8 @@ import (
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/config"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/handlers"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/middleware"
+	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/repository"
+	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/services"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/pkg/auth"
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/pkg/db"
 )
@@ -56,14 +59,26 @@ func main() {
 
 	// ── Dependency wiring ────────────────────────────────────────────────────
 	healthHandler := handlers.NewHealthHandler()
-	authHandler := handlers.NewAuthHandler()
-	tokenHandler := handlers.NewTokenHandler(cfg.FirebaseWebAPIKey)
+	authSvc := services.NewAuthService()
+	authHandler := handlers.NewAuthHandler(cfg.FirebaseWebAPIKey, authSvc)
+
+	todoRepo := repository.NewTodoRepository(mongoClient.DB)
+	todoSvc := services.NewTodoService(todoRepo)
+	todoHandler := handlers.NewTodoHandler(todoSvc)
 
 	// ── Router ───────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.CORSAllowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Public routes
 	r.GET("/health", healthHandler.Check)
@@ -74,16 +89,23 @@ func main() {
 	{
 		authGroup := v1.Group("/auth")
 
-		// POST /api/v1/auth/token — sign in with email+password, returns a Bearer token.
-		// Useful for testing with curl / Postman. In production the client app
-		// should call Firebase directly using the client SDK.
-		authGroup.POST("/token", tokenHandler.Token)
-
 		// Protected routes — require a valid Firebase ID token
 		authGroup.Use(middleware.FirebaseAuth(firebaseClient.Auth))
 		{
 			authGroup.GET("/me", authHandler.Me)
 		}
+		v1.POST("/auth/signin", authHandler.SignIn)
+
+		// Todo routes — all protected by Firebase auth
+		todoGroup := v1.Group("/todos")
+		todoGroup.Use(middleware.FirebaseAuth(firebaseClient.Auth))
+		{
+			todoGroup.POST("", todoHandler.Create)
+			todoGroup.GET("", todoHandler.List)
+			todoGroup.DELETE("/:id", todoHandler.Delete)
+		}
+		v1.PATCH("/todos-reset", middleware.FirebaseAuth(firebaseClient.Auth), todoHandler.Reset)
+		v1.PATCH("/todos-toggle/:id", middleware.FirebaseAuth(firebaseClient.Auth), todoHandler.Toggle)
 	}
 
 	// ── HTTP server ──────────────────────────────────────────────────────────

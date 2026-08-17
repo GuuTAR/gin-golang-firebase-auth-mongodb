@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/pkg/auth"
 )
@@ -20,8 +21,13 @@ type Config struct {
 
 	// FirebaseWebAPIKey is the client-facing Web API key from the Firebase Console
 	// (Project Settings → General → Web API key).
-	// Only required for the POST /auth/token sign-in helper endpoint.
+	// Only required for the POST /auth/signin sign-in helper endpoint.
 	FirebaseWebAPIKey string
+
+	// CORSAllowedOrigins are the origins allowed to make cross-origin requests,
+	// e.g. "https://app.example.com,http://localhost:3000". Defaults to "*"
+	// (any origin) for ease of local development.
+	CORSAllowedOrigins []string
 }
 
 // Load reads configuration from environment variables, falling back to defaults.
@@ -39,6 +45,8 @@ func Load() *Config {
 			ClientEmail:  getEnv("FIREBASE_CLIENT_EMAIL", ""),
 		},
 		FirebaseWebAPIKey: getEnv("FIREBASE_WEB_API_KEY", ""),
+
+		CORSAllowedOrigins: getEnvList("CORS_ALLOWED_ORIGINS", []string{"*"}),
 	}
 }
 
@@ -47,4 +55,21 @@ func getEnv(key, defaultVal string) string {
 		return v
 	}
 	return defaultVal
+}
+
+// getEnvList reads a comma-separated env var into a trimmed string slice.
+func getEnvList(key string, defaultVal []string) []string {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal
+	}
+
+	parts := strings.Split(v, ",")
+	list := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			list = append(list, p)
+		}
+	}
+	return list
 }
