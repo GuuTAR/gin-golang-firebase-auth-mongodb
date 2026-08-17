@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
+	"github.com/GuuTAR/gin-golang-firebase-auth-mongodb/internal/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,9 +28,8 @@ func FirebaseAuth(client *firebaseAuth.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "missing or malformed Authorization header",
-			})
+			util.JSONwithoutBody(c, http.StatusUnauthorized, "missing or malformed Authorization header")
+			c.Abort()
 			return
 		}
 
@@ -37,9 +37,8 @@ func FirebaseAuth(client *firebaseAuth.Client) gin.HandlerFunc {
 
 		token, err := client.VerifyIDToken(c.Request.Context(), idToken)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "invalid or expired token",
-			})
+			util.JSONwithoutBody(c, http.StatusUnauthorized, "invalid or expired token")
+			c.Abort()
 			return
 		}
 
