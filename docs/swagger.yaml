@@ -1,6 +1,19 @@
 basePath: /
 definitions:
-  handlers.signInRequest:
+  models.AuthMeResponse:
+    properties:
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      name:
+        type: string
+      picture:
+        type: string
+      uid:
+        type: string
+    type: object
+  models.AuthSignInRequest:
     properties:
       email:
         type: string
@@ -10,7 +23,7 @@ definitions:
     - email
     - password
     type: object
-  handlers.signInResponse:
+  models.AuthSignInResponse:
     properties:
       email:
         type: string
@@ -22,6 +35,37 @@ definitions:
         type: string
       uid:
         type: string
+    type: object
+  models.Response:
+    properties:
+      body: {}
+      message:
+        type: string
+    type: object
+  models.ResponseWithoutBody:
+    properties:
+      message:
+        type: string
+    type: object
+  models.Todo:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      is_completed:
+        type: boolean
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.TodoCreateRequest:
+    properties:
+      title:
+        type: string
+    required:
+    - title
     type: object
 info:
   contact: {}
@@ -39,20 +83,22 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/models.AuthMeResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ResponseWithoutBody'
       security:
       - BearerAuth: []
       summary: Get current user
       tags:
       - auth
-  /api/v1/auth/token:
+  /api/v1/auth/signin:
     post:
       consumes:
       - application/json
@@ -65,35 +111,200 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/handlers.signInRequest'
+          $ref: '#/definitions/models.AuthSignInRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.signInResponse'
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/models.AuthSignInResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ResponseWithoutBody'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ResponseWithoutBody'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ResponseWithoutBody'
       summary: Sign in and get a Bearer token
       tags:
       - auth
+  /api/v1/todos:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                body:
+                  items:
+                    $ref: '#/definitions/models.Todo'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+      security:
+      - BearerAuth: []
+      summary: List todos
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Todo
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.TodoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/models.Todo'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+      security:
+      - BearerAuth: []
+      summary: Create a todo
+      tags:
+      - todos
+  /api/v1/todos-reset:
+    patch:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+      security:
+      - BearerAuth: []
+      summary: Reset all todos to not completed
+      tags:
+      - todos
+  /api/v1/todos-toggle/{id}:
+    patch:
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/models.Todo'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+      security:
+      - BearerAuth: []
+      summary: Toggle a todo's completed state
+      tags:
+      - todos
+  /api/v1/todos/{id}:
+    delete:
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+      security:
+      - BearerAuth: []
+      summary: Delete a todo
+      tags:
+      - todos
+  /health:
+    get:
+      description: Returns ok when the server is running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ResponseWithoutBody'
+      summary: Health check
+      tags:
+      - health
 securityDefinitions:
   BearerAuth:
     description: Firebase ID token — prefix with "Bearer "
